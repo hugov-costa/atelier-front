@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+  API_URL_SERVER: http://localhost:8000/api/v1
+  NEXT_PUBLIC_STORAGE_URL: http://localhost:9000
+
+jobs:
+  quality:
+    name: Lint, testes e build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm run test
+      - run: npm run build
+
+  e2e:
+    name: Testes E2E (Playwright, UI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Report-only: findings are printed in the job log and never block the pipeline
+      # (honours "do not break on false positives"). Remove `continue-on-error` to gate.
+      - name: Semgrep (diff-aware)
+        run: semgrep ci
+        continue-on-error: true
+        env:
+          SEMGREP_RULES: "p/javascript p/typescript p/react p/owasp-top-ten p/secrets"
+
+  e2e-api:
+    name: Testes E2E autenticados (com a API)
+    runs-on: ubuntu-latest
+    env:
+      API_REPO_URL: https://github.com/hugov-costa/boilerplate.git
+    steps:
+      - uses: actions/checkout@v4
+      - name: Provisionar a API
+        run: |
+          git clone --depth 1 "$API_REPO_URL" api
+          cd api
+          cp .env.example .env
+          docker compose up -d app minio createbuckets
+          for attempt in $(seq 1 48); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q app)" 2>/dev/null || echo starting)
+            echo "API health: $status"
+            [ "$status" = "healthy" ] && exit 0
+            sleep 5
+          done
+          echo "API did not become healthy in time" >&2
+          docker compose logs app | tail -50
+          exit 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

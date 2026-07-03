@@ -1,0 +1,6 @@
+set -e
+
+printf '\n▶ build (next build)\n'
+npm run build
+
+printf '\n✔ build aprovado\n'

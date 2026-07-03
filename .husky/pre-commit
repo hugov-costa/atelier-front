@@ -1,0 +1,19 @@
+set -e
+
+step() {
+  printf '\n▶ %s\n' "$1"
+}
+
+step "lint-staged (prettier + eslint --fix nos arquivos staged)"
+npx lint-staged
+
+step "typecheck (tsc — repositório completo)"
+npm run typecheck
+
+step "lint (eslint — repositório completo)"
+npm run lint
+
+step "testes (vitest)"
+npm run test
+
+printf '\n✔ quality gate aprovado (build roda no pre-push)\n'
