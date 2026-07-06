@@ -15,6 +15,35 @@ Guia para estender esta base de forma consistente. O objetivo é que qualquer
 - Tudo formatado com Prettier; `lint`, `test` e `build` devem passar sem erros nem
   warnings.
 
+## Organização de código
+
+### Ordem de campos (banco de dados / schemas zod / interfaces)
+
+```
+id
+ulid
+<FKs em ordem alfabética>
+<demais campos em ordem alfabética>
+created_at
+deleted_at
+updated_at
+```
+
+### Ordem alfabética
+
+- Itens de **arrays e objetos** literais em ordem alfabética.
+- **Componentes** em ordem alfabética de importação.
+- **Parâmetros de funções** em ordem alfabética.
+
+### Organização de funções
+
+Em cada arquivo, agrupe:
+
+1. **Funções públicas** (exportadas) — em ordem alfabética.
+2. **Funções privadas** (não exportadas) — em ordem alfabética.
+
+---
+
 ## Estrutura por feature
 
 Cada feature vive em `src/app/<feature>/` com subpastas privadas (prefixo `_`):
@@ -146,6 +175,58 @@ const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues });
   `authenticated.spec.ts`, que roda o fluxo completo contra a API (pula sozinho quando a
   API não responde em `/health`).
 - **Integração** (`scripts/*.mjs`): contra a API real.
+
+## Responsividade
+
+- Toda página e componente deve funcionar em **desktop e mobile**.
+- Use Tailwind breakpoints (`sm:`, `md:`, `lg:`) para adaptar layout.
+- O app shell (sidebar) já colapsa em mobile — respeite esse comportamento.
+- Tabelas em mobile: considere cartões ou scroll horizontal quando necessário.
+
+## Design — Ateliê de Cerâmica
+
+A UI deve transmitir a identidade de um **ateliê de cerâmica**:
+
+- **Paleta de cores**: tons terrosos e suaves (terracota, argila, creme, verde sálvia, marrom claro) com um toque minimalista.
+- **Bordas**: predominantemente arredondadas (`rounded-lg`, `rounded-md`), lembrando formas orgânicas.
+- **Tipografia**: limpa, arejada — uso das fontes Geist (sans) e Geist Mono já configuradas.
+- **Sensação**: artesanal, delicada, aconchegante — sem excessos visuais.
+- Inputs e cards com sombras suaves e espaçamento generoso.
+
+**Customização**: os componentes shadcn/ui podem ser estilizados via variáveis CSS no `globals.css` e classes Tailwind, respeitando o design system do projeto.
+
+## Campos com texto de ajuda
+
+Para campos ou seções onde a finalidade não é imediatamente óbvia, adicione
+`description` ao componente de formulário:
+
+```tsx
+<FormInput
+  name="slug"
+  label="Slug"
+  description="Identificador usado na URL. Preenchido automaticamente se deixado em branco."
+/>
+```
+
+- Descrições devem ser **concisas** — uma ou duas frases.
+- Não adicionar descrição em campos autoexplicativos (ex.: nome, e-mail).
+
+## Tabelas (DataTable)
+
+Além do padrão já descrito, observe:
+
+- **Paginação server-side**: os parâmetros `page`, `perPage`, `search`, `sort` e `direction`
+  são enviados à API. O `useListController` gerencia o estado local (página, busca com
+  debounce, ordenação).
+- **Busca textual**: um `<Input type="search">` acima da tabela dispara busca com debounce.
+  A API decide em quais campos a busca incide.
+- **Ordenação**: colunas com `sortable: true` e `sortKey` definido alternam entre `asc`/`desc`.
+  O hook de dados recebe `sort?.key` e `sort?.direction`.
+- **Filtros**: quando necessário, adicione controles de filtro entre o título e a tabela.
+  Use `<Select>` ou `<Input>` conforme o caso; os valores devem integrar os parâmetros
+  da query (ex.: `status`, `category`).
+- ⚠️ **Cuidado**: ao mudar filtro, busca ou ordenação, **resete a página para 1**
+  (o `useListController` já faz isso em `onSearchChange` e `onSortChange`).
 
 ## Qualidade
 
