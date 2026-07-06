@@ -83,7 +83,7 @@
   "home": {
     "greeting": "Olá, {name}",
     "title": "Painel",
-    "welcome": "Bem-vindo ao painel integrado à API service-fm.",
+    "welcome": "Bem-vindo ao painel integrado à API atelie.",
     "accountTitle": "Minha conta",
     "accountDescription": "Atualize seu perfil, senha, imagem e segurança.",
     "accountAction": "Acessar conta",

@@ -1,6 +1,6 @@
 # Guia de produção (front + API)
 
-Instruções para colocar a plataforma em produção: a **API** (`service-fm`, Laravel/Octane)
+Instruções para colocar a plataforma em produção: a **API** (`atelie`, Laravel/Octane)
 e o **front** (`serv_front`, Next.js), além de como configurá-los **em conjunto** (cookies,
 CORS, CSRF). Ao final há um **checklist** consolidado.
 
@@ -27,7 +27,7 @@ Navegador ──HTTPS──> Front (Next.js, :3000)  ──(SSR/proxy)──┐
 
 ---
 
-## 2. API (`service-fm`)
+## 2. API (`atelie`)
 
 ### 2.1 Configuração
 

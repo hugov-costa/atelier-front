@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Serv Front",
-  description: "Painel administrativo integrado à API service-fm.",
+  description: "Painel administrativo integrado à API atelie.",
 };
 
 export default async function RootLayout({

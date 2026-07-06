@@ -1,6 +1,6 @@
 # Serv Front
 
-Painel administrativo em Next.js 16 integrado à API [service-fm](https://github.com/hugov-costa/boilerplate)
+Painel administrativo em Next.js 16 integrado à API [atelie](https://github.com/hugov-costa/boilerplate)
 (Laravel 13 + Sanctum). A organização de código segue o projeto de referência
 [sl-front](https://github.com/hugov-costa/sl-front), com camadas desacopladas
 (`services`, `interfaces`, `types`, `lib`, `contexts`, `utils`) e hooks, componentes
@@ -23,7 +23,7 @@ e schemas colocados por feature.
 ## Pré-requisitos
 
 - Node.js 20 ou superior
-- A API service-fm em execução (veja o repositório do boilerplate). Por padrão ela
+- A API atelie em execução (veja o repositório do boilerplate). Por padrão ela
   responde em `http://localhost:8000` com prefixo `/api/v1` e libera CORS para
   `http://localhost:3000` com suporte a credenciais.
 
@@ -313,7 +313,7 @@ alterações relevantes neste README.
   (lista vs. detalhe), `optimizePackageImports`, `target` ES2022 e remoção de strings
   fixas em PT na tabela/paginação.
 
-### Integração inicial com a API service-fm
+### Integração inicial com a API atelie
 
 - Adicionada a stack de integração: TanStack Query, react-hook-form, zod,
   shadcn/ui, sonner e next-themes.

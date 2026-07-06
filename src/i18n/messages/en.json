@@ -83,7 +83,7 @@
   "home": {
     "greeting": "Hello, {name}",
     "title": "Dashboard",
-    "welcome": "Welcome to the dashboard integrated with the service-fm API.",
+    "welcome": "Welcome to the dashboard integrated with the atelie API.",
     "accountTitle": "My account",
     "accountDescription": "Update your profile, password, image and security.",
     "accountAction": "Open account",
