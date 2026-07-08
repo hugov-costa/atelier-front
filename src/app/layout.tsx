@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Geist_Mono, Nunito_Sans } from "next/font/google";
 import { headers } from "next/headers";
 import { getLocale } from "next-intl/server";
 
@@ -8,19 +8,30 @@ import { messagesByLocale, resolveLocale } from "@/i18n/config";
 
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const bodySans = Nunito_Sans({
+  variable: "--font-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const headingSerif = Fraunces({
+  variable: "--font-heading",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
+
+const monoFont = Geist_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Serv Front",
-  description: "Painel administrativo integrado à API atelie.",
+  description: "Painel administrativo integrado à API atelier.",
 };
 
 export default async function RootLayout({
@@ -36,7 +47,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${bodySans.variable} ${headingSerif.variable} ${monoFont.variable} h-full antialiased`}
     >
       <body className="bg-background text-foreground flex min-h-full flex-col">
         <Providers locale={locale} messages={messages} nonce={nonce}>

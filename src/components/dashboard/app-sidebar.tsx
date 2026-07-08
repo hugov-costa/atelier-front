@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { LogOut } from "lucide-react";
 
-import { accountNavigationItem, primaryNavigation } from "@/config/navigation";
+import { accountNavigationItem, navigationGroups } from "@/config/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -13,6 +13,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -38,9 +39,14 @@ export function AppSidebar() {
   const { can } = useAuthorization();
   const logoutMutation = useLogout();
 
-  const visibleItems = primaryNavigation.filter(
-    (item) => !item.permission || can(item.permission),
-  );
+  const visibleGroups = navigationGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => !item.permission || can(item.permission),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <Sidebar>
@@ -48,25 +54,30 @@ export function AppSidebar() {
         Serv Front
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {visibleItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActiveRoute(pathname, item.href)}
-                  >
-                    <Link href={item.href}>
-                      <item.icon />
-                      <span>{t(item.titleKey)}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {visibleGroups.map((group, groupIndex) => (
+          <SidebarGroup key={group.labelKey ?? `group-${groupIndex}`}>
+            {group.labelKey ? (
+              <SidebarGroupLabel>{t(group.labelKey)}</SidebarGroupLabel>
+            ) : null}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActiveRoute(pathname, item.href)}
+                    >
+                      <Link href={item.href}>
+                        <item.icon />
+                        <span>{t(item.titleKey)}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter className="gap-2">
         <SidebarMenu>

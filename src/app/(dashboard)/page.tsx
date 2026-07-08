@@ -1,7 +1,5 @@
-"use client";
-
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
 import { Can } from "@/components/authorization/can";
 import { PageTitle } from "@/components/page-title";
@@ -13,11 +11,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useUser } from "@/contexts/user-context";
+import { fetchCurrentUserOnServer } from "@/lib/server-prefetch";
 
-export default function DashboardHomePage() {
-  const t = useTranslations("home");
-  const { user } = useUser();
+export default async function DashboardHomePage() {
+  const t = await getTranslations("home");
+  const user = await fetchCurrentUserOnServer().catch(() => null);
 
   return (
     <div className="space-y-8">

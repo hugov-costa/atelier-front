@@ -6,6 +6,7 @@ import { ReactNode } from "react";
 import { QueryProvider } from "@/components/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserProvider } from "@/contexts/user-context";
 import { Locale, Messages } from "@/i18n/config";
 import { User } from "@/interfaces/user";
@@ -40,8 +41,10 @@ export function Providers({
       >
         <QueryProvider>
           <UserProvider initialUser={initialUser}>
-            {children}
-            <Toaster richColors position="top-right" />
+            <TooltipProvider delayDuration={200}>
+              {children}
+              <Toaster richColors position="top-right" />
+            </TooltipProvider>
           </UserProvider>
         </QueryProvider>
       </ThemeProvider>

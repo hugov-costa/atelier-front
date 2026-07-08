@@ -1,14 +1,33 @@
-export const authenticationRoutes = ["/login", "/register"] as const;
+export const authenticationRoutes = ["/login"] as const;
 
 export const protectedRoutes = [
   "/",
   "/users",
   "/account",
   "/audits",
+  "/bills",
+  "/clays",
+  "/clay-suppliers",
+  "/commission-orders",
+  "/customers",
+  "/enrollments",
+  "/firing-cycles",
+  "/glazes",
+  "/glaze-suppliers",
+  "/material-purchases",
+  "/notifications",
+  "/piece-categories",
+  "/piece-charges",
+  "/pieces",
+  "/recurrent-classes",
+  "/reports",
+  "/settings",
+  "/single-classes",
+  "/tuition-fees",
   "/verify-email",
 ] as const;
 
-export const defaultAuthenticatedRoute = "/users";
+export const defaultAuthenticatedRoute = "/";
 
 export const loginRoute = "/login";
 
