@@ -1,5 +1,7 @@
 const EMPTY_VALUE = "—";
 
+const DISPLAY_TIME_ZONE = "America/Sao_Paulo";
+
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
   style: "currency",
@@ -13,6 +15,7 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
 const dateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
   timeStyle: "short",
+  timeZone: DISPLAY_TIME_ZONE,
 });
 
 const dateTimeUtcFormatter = new Intl.DateTimeFormat("pt-BR", {
@@ -169,6 +172,15 @@ export function formatDecimal(value?: string | number | null): string {
   }
 
   return decimalFormatter.format(parsed);
+}
+
+export function getCurrentYear(): number {
+  const year = new Intl.DateTimeFormat("en-CA", {
+    timeZone: DISPLAY_TIME_ZONE,
+    year: "numeric",
+  }).format(new Date());
+
+  return Number(year);
 }
 
 export function getInitials(name: string): string {

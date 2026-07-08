@@ -22,6 +22,7 @@ import {
 import { useAuthorization } from "@/hooks/useAuthorization";
 import { ListBillsParams } from "@/interfaces/bill";
 import { Month, months } from "@/lib/enums";
+import { getCurrentYear } from "@/utils/formatters";
 
 const PER_PAGE = 15;
 const ALL_FILTER = "all";
@@ -45,7 +46,7 @@ export function BillsView() {
   const [recurrentFilter, setRecurrentFilter] =
     useState<RecurrentFilter>(ALL_FILTER);
 
-  const currentYear = new Date().getFullYear();
+  const currentYear = getCurrentYear();
   const years = Array.from(
     { length: YEARS_RANGE },
     (_, index) => currentYear + 1 - index,
