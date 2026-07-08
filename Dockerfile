@@ -3,7 +3,10 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+# --ignore-scripts: não executa postinstall de dependências no build (hardening de
+# supply-chain) nem o `prepare` do husky (desnecessário na imagem). O build roda no
+# estágio `builder` via `npm run build`.
+RUN npm ci --ignore-scripts
 
 FROM node:22-alpine AS builder
 WORKDIR /app

@@ -1,3 +1,11 @@
+# Orquestra a stack completa (API + front) sob um único projeto e rede (atelier_default).
+# `include` puxa o compose da API sem alterá-lo; o front sobe só depois da API saudável.
+# Suba tudo a partir daqui: `docker compose up -d` (API primeiro, front depois).
+name: atelier
+
+include:
+  - ../boilerplate-api/docker-compose.yml
+
 services:
   web:
     build:
@@ -8,6 +16,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
-      - API_URL_SERVER=${API_URL_SERVER:-http://localhost:8000/api/v1}
+      - NODE_ENV=development
+      # Dentro da rede compartilhada o front alcança a API pelo nome do serviço.
+      - API_URL_SERVER=${API_URL_SERVER:-http://app:8000/api/v1}
+    depends_on:
+      app:
+        condition: service_healthy
     restart: unless-stopped

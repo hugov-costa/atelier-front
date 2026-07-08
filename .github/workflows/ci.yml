@@ -57,6 +57,23 @@ jobs:
         env:
           SEMGREP_RULES: "p/javascript p/typescript p/react p/owasp-top-ten p/secrets"
 
+  dependencies:
+    name: Scan de dependências (npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Report-only: advisories are printed in the job log and never block the
+      # pipeline (same philosophy as the Semgrep job). Remove `continue-on-error`
+      # to gate once the advisory backlog is triaged.
+      - name: npm audit (high+)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
   e2e-api:
     name: Testes E2E autenticados (com a API)
     runs-on: ubuntu-latest
