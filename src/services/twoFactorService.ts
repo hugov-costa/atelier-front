@@ -5,14 +5,25 @@ import {
   TwoFactorSetupResponse,
 } from "@/interfaces/twoFactor";
 import { apiClient } from "@/lib/api-client";
+import {
+  parseApiResponse,
+  resourceSchema,
+  twoFactorRecoveryCodesResponseSchema,
+  twoFactorSetupResponseSchema,
+} from "@/lib/responseSchemas";
 import { HttpMethodType } from "@/types/httpMethod";
 
 export async function enableTwoFactor(): Promise<TwoFactorSetupResponse> {
-  return apiClient<TwoFactorSetupResponse>({
+  const response = await apiClient<unknown>({
     url: "/two-factor/enable",
     method: HttpMethodType.POST,
     errorMessage: "Erro ao habilitar a autenticação em dois fatores.",
   });
+
+  return parseApiResponse(
+    resourceSchema(twoFactorSetupResponseSchema),
+    response,
+  );
 }
 
 export async function confirmTwoFactor(
@@ -29,12 +40,17 @@ export async function confirmTwoFactor(
 export async function regenerateRecoveryCodes(
   password: string,
 ): Promise<TwoFactorRecoveryCodesResponse> {
-  return apiClient<TwoFactorRecoveryCodesResponse>({
+  const response = await apiClient<unknown>({
     url: "/two-factor/recovery-codes",
     method: HttpMethodType.POST,
     body: { password },
     errorMessage: "Erro ao gerar novos códigos de recuperação.",
   });
+
+  return parseApiResponse(
+    resourceSchema(twoFactorRecoveryCodesResponseSchema),
+    response,
+  );
 }
 
 export async function disableTwoFactor(

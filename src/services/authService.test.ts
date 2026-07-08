@@ -53,7 +53,53 @@ describe("login", () => {
     expect(result.data?.user.email).toBe("jane@example.com");
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+
+  it("omite o campo code quando vazio", async () => {
+    const body = await captureLoginBody({
+      email: user.email,
+      password: "x",
+      code: "",
+    });
+
+    expect(body).toEqual({ email: user.email, password: "x" });
+  });
+
+  it("envia o campo code quando informado", async () => {
+    const body = await captureLoginBody({
+      email: user.email,
+      password: "x",
+      code: "123456",
+    });
+
+    expect(body).toEqual({ email: user.email, password: "x", code: "123456" });
+  });
 });
+
+async function captureLoginBody(
+  credentials: Parameters<typeof login>[0],
+): Promise<unknown> {
+  let sentBody: unknown = null;
+
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: string | URL, init?: RequestInit) => {
+      if (String(input).includes("/sanctum/csrf-cookie")) {
+        return new Response(null, { status: 204 });
+      }
+
+      sentBody = init?.body ? JSON.parse(String(init.body)) : null;
+
+      return jsonResponse({
+        data: { user, token_type: "Bearer" },
+        message: null,
+      });
+    }),
+  );
+
+  await login(credentials);
+
+  return sentBody;
+}
 
 describe("getCurrentUser", () => {
   it("desempacota o usuário do envelope data", async () => {

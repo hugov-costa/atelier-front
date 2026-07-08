@@ -1,11 +1,14 @@
 import { LoginResponse, MessageResponse } from "@/interfaces/authResponse";
 import { LoginCredentials } from "@/interfaces/login";
 import {
+  ConfirmSetPasswordPayload,
+  DeleteAccountPayload,
   ForgotPasswordPayload,
   ResetPasswordPayload,
+  SetPasswordLinkPayload,
   UpdatePasswordPayload,
+  ValidateSetPasswordTokenPayload,
 } from "@/interfaces/password";
-import { RegisterPayload } from "@/interfaces/register";
 import { User } from "@/interfaces/user";
 import {
   apiClient,
@@ -19,45 +22,32 @@ import {
 } from "@/lib/responseSchemas";
 import { HttpMethodType } from "@/types/httpMethod";
 
-function isResourceResponse(value: unknown): value is { data: User } {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "data" in value &&
-    typeof (value as { data: unknown }).data === "object"
-  );
-}
-
-export async function register(
-  payload: RegisterPayload,
-): Promise<MessageResponse> {
-  await requestCsrfCookie();
-
-  return apiClient<MessageResponse>({
-    url: "/register",
-    method: HttpMethodType.POST,
-    body: payload,
-    errorMessage: "Erro ao registrar usuário.",
-  });
-}
-
 export async function login(
   credentials: LoginCredentials,
 ): Promise<LoginResponse> {
   await requestCsrfCookie();
 
+  const body: LoginCredentials = {
+    email: credentials.email,
+    password: credentials.password,
+  };
+
+  if (credentials.code) {
+    body.code = credentials.code;
+  }
+
   const response = await apiClient<LoginResponse>({
     url: "/login",
     method: HttpMethodType.POST,
-    body: credentials,
+    body,
     errorMessage: "Erro ao realizar login.",
   });
 
   return parseApiResponse(loginResponseSchema, response);
 }
 
-export async function logout(): Promise<MessageResponse> {
-  return apiClient<MessageResponse>({
+export async function logout(): Promise<void> {
+  await apiClient<void>({
     url: "/logout",
     method: HttpMethodType.POST,
     errorMessage: "Erro ao realizar logout.",
@@ -65,21 +55,38 @@ export async function logout(): Promise<MessageResponse> {
 }
 
 export async function getCurrentUser(): Promise<User> {
-  const response = await apiClient<{ data: User } | User>({
+  const response = await apiClient<{ data: User }>({
     url: "/user",
     method: HttpMethodType.GET,
     errorMessage: "Erro ao buscar o usuário autenticado.",
   });
 
-  const user = isResourceResponse(response) ? response.data : response;
+  return parseApiResponse(userResponseSchema, response.data);
+}
 
-  return parseApiResponse(userResponseSchema, user);
+export async function deleteAccount(
+  payload: DeleteAccountPayload,
+): Promise<void> {
+  await apiClient<void>({
+    url: "/user",
+    method: HttpMethodType.DELETE,
+    body: payload,
+    errorMessage: "Erro ao eliminar a conta.",
+  });
+}
+
+export async function exportAccountData(): Promise<unknown> {
+  return apiClient<unknown>({
+    url: "/user/export",
+    method: HttpMethodType.GET,
+    errorMessage: "Erro ao exportar os dados da conta.",
+  });
 }
 
 export async function updatePassword(
   payload: UpdatePasswordPayload,
-): Promise<MessageResponse> {
-  return apiClient<MessageResponse>({
+): Promise<void> {
+  await apiClient<void>({
     url: "/user/password",
     method: HttpMethodType.PUT,
     body: payload,
@@ -110,6 +117,45 @@ export async function resetPassword(
     method: HttpMethodType.POST,
     body: payload,
     errorMessage: "Erro ao redefinir a senha.",
+  });
+}
+
+export async function sendSetPasswordLink(
+  payload: SetPasswordLinkPayload,
+): Promise<void> {
+  await requestCsrfCookie();
+
+  await apiClient<void>({
+    url: "/set-password/request",
+    method: HttpMethodType.POST,
+    body: payload,
+    errorMessage: "Erro ao solicitar o link de definição de senha.",
+  });
+}
+
+export async function validateSetPasswordToken(
+  payload: ValidateSetPasswordTokenPayload,
+): Promise<void> {
+  await requestCsrfCookie();
+
+  await apiClient<void>({
+    url: "/set-password/validate-token",
+    method: HttpMethodType.POST,
+    body: payload,
+    errorMessage: "Link de definição de senha inválido ou expirado.",
+  });
+}
+
+export async function confirmSetPassword(
+  payload: ConfirmSetPasswordPayload,
+): Promise<void> {
+  await requestCsrfCookie();
+
+  await apiClient<void>({
+    url: "/set-password/confirm",
+    method: HttpMethodType.POST,
+    body: payload,
+    errorMessage: "Erro ao definir a senha.",
   });
 }
 

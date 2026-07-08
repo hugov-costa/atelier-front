@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { AvatarCard } from "@/app/(dashboard)/account/_components/avatar-card";
 import { ChangePasswordCard } from "@/app/(dashboard)/account/_components/change-password-card";
+import { DataPrivacyCard } from "@/app/(dashboard)/account/_components/data-privacy-card";
 import { ProfileCard } from "@/app/(dashboard)/account/_components/profile-card";
 import { TwoFactorCard } from "@/app/(dashboard)/account/_components/two-factor-card";
 import { PageTitle } from "@/components/page-title";
@@ -24,6 +25,7 @@ export default function AccountPage() {
           <AvatarCard user={user} />
           <ChangePasswordCard />
           <TwoFactorCard />
+          <DataPrivacyCard />
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">

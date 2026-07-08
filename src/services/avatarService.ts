@@ -22,9 +22,7 @@ export async function uploadAvatar(
     errorMessage: "Erro ao enviar a imagem de perfil.",
   });
 
-  parseApiResponse(resourceSchema(userResponseSchema), response);
-
-  return response;
+  return parseApiResponse(resourceSchema(userResponseSchema), response);
 }
 
 export async function deleteAvatar(userId: string): Promise<MessageResponse> {
