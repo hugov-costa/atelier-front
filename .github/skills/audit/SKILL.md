@@ -1,6 +1,6 @@
 ---
 name: audit
-description: "Auditoria profunda e detalhada do projeto serv_front. Verifica segurança, performance, qualidade de código, LGPD, ferramentas, contratos de API e veracidade da documentação. Use quando: o usuário pedir auditoria, revisão, code review, verificação de segurança, checagem de qualidade, análise de LGPD, validação de contratos de API."
+description: "Auditoria profunda e detalhada do projeto serv_front. Verifica segurança, performance, qualidade de código, LGPD, i18n, ferramentas, contratos de API e veracidade da documentação. Use quando: o usuário pedir auditoria, revisão, code review, verificação de segurança, checagem de qualidade, análise de LGPD, validação de contratos de API."
 user-invocable: true
 ---
 
@@ -18,6 +18,7 @@ segurança, performance, qualidade de código, LGPD e funcionamento das ferramen
 5. **Toda falha encontrada deve ser detalhada** com: o que é, onde está, por que é um problema, qual o risco, como corrigir, **e quantos pontos reduz na pontuação**.
 6. **Os documentos de deploy devem ser auditados** tanto quanto o código fonte. Leia `docs/DEPLOYMENT.md`, `docs/DEPLOY-RENDER.md` (front) e `../boilerplate-api/docs/DEPLOYMENT.md`, `../boilerplate-api/docs/DEPLOY-RENDER.md` (API). Verifique consistência entre eles, contradições, instruções incorretas ou desatualizadas.
 7. **Teste com os containers em execução.** O projeto é totalmente dockerizado. Sempre que a avaliação exigir verificação de comportamento em runtime (ex.: fluxo de autenticação, CSP real, comportamento de proxy, renderização de páginas, integração com API), **subo os containers do Docker** com `docker compose up -d` (a partir da raiz do front — o `docker-compose.yml` já inclui o backend, que será upado junto). Teste contra a aplicação real no navegador. A leitura de código estática não substitui a observação do comportamento em execução.
+   - **Perfil do front (dev vs prod).** O front tem dois perfis no compose, selecionados pela variável `COMPOSE_PROFILES` no `.env`: `dev` sobe `web-dev` (`next dev` com HMR e bind-mount) e `prod` sobe `web` (imagem standalone de produção). **Para auditar comportamento de produção** (CSP `strict-dynamic` com nonce, `upgrade-insecure-requests`, ausência de erros verbosos, `NODE_ENV=production`) use `COMPOSE_PROFILES=prod docker compose up -d --build web`. O perfil `dev` NÃO reflete a CSP nem os headers de produção. Sem nenhum perfil ativo o serviço do front não sobe (só a API).
 8. **Testes e ferramentas rodam dentro do container Docker.** O projeto não tem Node.js instalado no ambiente host — `npm`, `node` e ferramentas como ESLint, Vitest, TypeScript e Next.js só estão disponíveis **dentro do container**. Para executar qualquer comando de teste/qualidade, use:
    ```bash
    docker compose run --rm web npm run <comando>
@@ -134,10 +135,51 @@ Siga cada fase em ordem. Não pule fases. Documente descobertas num arquivo de r
    - Toda mutation trata `onError` com toast?
    - Toda query em página protegida tem `enabled` com permissão?
    - `captureError` é chamado nos lugares certos?
-5. **Build**
+5. **Hydration e timezone/horário/data**
+   - **Hydration mismatch de tempo**: componentes que exibem data/hora relativa ("há 2 minutos", "hoje", "ontem") podem renderizar diferente entre server e client, causando hydration mismatch. Verifique se usam `"use client"` + `useEffect`/`useSyncExternalStore` ou `suppressHydrationWarning` quando apropriado.
+   - **Timezone inconsistente**: datas armazenadas em UTC pela API podem ser exibidas sem conversão para o fuso do usuário. Verifique se `src/utils/formatters.ts` (ou equivalente) converte corretamente para o timezone do cliente antes de exibir.
+   - **Formatação localizada de data/hora**: o uso de `toLocaleDateString()` ou `Intl.DateTimeFormat` sem considerar o locale ativo do next-intl pode gerar discrepâncias. A formatação deve ser dinâmica conforme o locale escolhido, não hardcoded para `pt-BR`.
+   - **Server vs Client date**: datas geradas no servidor (ex.: `new Date()` em server components) diferem das do cliente se o servidor está em fuso diferente. Prefira enviar timestamps UTC da API e converter no cliente.
+   - **Campos `created_at`/`updated_at`**: verifique se são exibidos com o timezone correto (convertido do UTC armazenado para o fuso do usuário) e não no ISO cru ou fuso do servidor.
+6. **Build**
    - `npm run build` passa sem erros?
 
-### Fase 6: Funcionamento das ferramentas
+### Fase 6: Internacionalização (i18n)
+
+> ⚡ Todo texto visível ao usuário deve estar internacionalizado. Verifique se as mensagens estão nos arquivos de locale, se os schemas zod usam factory com `t` para mensagens traduzíveis, e se novos componentes/textos estão devidamente mapeados nos dois idiomas (pt-BR e en).
+
+1. **Arquivos de locale**
+   - Leia `src/i18n/messages/pt-BR.json` e `src/i18n/messages/en.json` — todos os textos da interface estão mapeados em ambos os idiomas?
+   - Há textos hardcoded em português ou inglês nos componentes (JSX, toasts, placeholders, labels)?
+   - As chaves seguem um padrão de nomenclatura consistente e hierarquizado?
+2. **Zod schemas i18n**
+   - Todo schema zod usa o padrão factory `createXSchema(t)` para mensagens de erro traduzíveis?
+   - Há schemas com mensagens de erro hardcoded em um único idioma?
+3. **Cobertura de chaves (completude código→mensagens)**
+
+   > ⚡ **Não basta verificar paridade entre os dois arquivos de locale.** Se ambos perderem as mesmas chaves, a paridade estará perfeita mas a UI exibirá chaves cruas. É necessário verificar a **completude código→mensagens**.
+   - **Paridade pt↔en**: faltam chaves em `en.json` que existem em `pt-BR.json` ou vice-versa? (grep por divergências)
+   - **Completude código→mensagens (crítico)**: extraia TODAS as chaves usadas em `t(...)` ou `t("...")` no código-fonte (`src/`) e confirme que CADA uma delas existe em AMBOS os arquivos de locale. Exemplo:
+     ```bash
+     grep -rhP "t\(['\"]([^'\"]+)['\"]" src/ --include='*.tsx' --include='*.ts' -o | sed "s/t(['\"]//;s/['\"].*//" | sort -u > /tmp/chaves_usadas.txt
+     ```
+     Depois cruze com as chaves de cada JSON. Chaves usadas no código mas ausentes nos dois arquivos de locale = falha.
+   - Para cada nova feature/page adicionada, as chaves de i18n foram adicionadas em ambos os idiomas?
+
+4. **next-intl**
+   - O `next-intl` está configurado corretamente (`src/i18n/config.ts`, `src/i18n/request.ts`)?
+   - `getTranslations()`/`t()` é usado em server components e `useTranslations()` em client components?
+   - A função `setLocale` (`src/i18n/setLocale.ts`) funciona corretamente para persistir a escolha de idioma?
+5. **Locale switcher**
+   - Leia `src/components/locale-switcher.tsx` — o seletor de idioma está funcional e acessível?
+   - A troca de idioma persiste corretamente (cookie, localStorage)?
+6. **Formatação localizada**
+   - Datas, números e moedas usam formatação localizada (ex.: `Intl.DateTimeFormat`, `Intl.NumberFormat`, ou utils em `src/utils/formatters.ts`)?
+   - Há formatação hardcoded (ex.: `toLocaleDateString('pt-BR')`) que deveria ser dinâmica conforme o locale ativo?
+
+---
+
+### Fase 7: Funcionamento das ferramentas
 
 > ⚡ Confirme que `docker compose build` passa limpo antes de prosseguir.
 > ⚡ Lembre-se: comandos como `npm run lint`, `npm run test` etc. rodam **dentro do container**.
@@ -156,7 +198,7 @@ Siga cada fase em ordem. Não pule fases. Documente descobertas num arquivo de r
    - Usuário não-root?
    - **Build em container**: rode `docker compose build` e verifique se completa sem erros. Depois suba com `docker compose up -d` e acesse a aplicação no navegador para confirmar que inicializa corretamente.
 
-### Fase 7: Documentação da API (registro auxiliar)
+### Fase 8: Documentação da API (registro auxiliar)
 
 > ⚡ Esta fase é complementar e independente das demais. Seu objetivo é construir um **registro auxiliar** com os contratos da API para facilitar operações futuras (consultas rápidas, automações, scripts de teste).
 
@@ -175,7 +217,7 @@ Siga cada fase em ordem. Não pule fases. Documente descobertas num arquivo de r
 
 ---
 
-### Fase 8: Documentação (veracidade e completude)
+### Fase 9: Documentação (veracidade e completude)
 
 > ⚡ Esta fase inclui também os **documentos de deploy** do front e da API.
 > Leia **todos** os documentos de documentação e deploy, não apenas os do front.
@@ -194,6 +236,33 @@ Siga cada fase em ordem. Não pule fases. Documente descobertas num arquivo de r
    - Toda funcionalidade implementada está documentada?
    - `docs/api-reference.md` cobre **todos** os endpoints consumidos?
    - Faltam instruções para o que o projeto faz?
+
+---
+
+### Fase 9: Correção visual da UI (valores exibidos e i18n)
+
+> ⚡ Suba os containers (`docker compose up -d`) e **abra cada tela no navegador**. Leitura estática de código não revela chaves de tradução ausentes nem valores incoerentes — só a renderização real revela.
+> ⚡ As falhas desta fase contam na seção **Qualidade de código** — **NÃO** crie uma seção separada de i18n no scoring.
+
+Objetivo: garantir que a UI exibe valores **condizentes com o que se espera** — nenhuma chave crua, nenhum valor bruto, nenhum rótulo incoerente com o dado por trás.
+
+1. **Chaves de i18n resolvidas (crítico)**
+   - Nenhuma tela pode exibir a **chave crua** de tradução (ex.: `users.columnActive`, `users.activeYes`) no lugar do texto traduzido. Isso indica chave ausente em `src/i18n/messages/pt-BR.json` e/ou `en.json`.
+   - Para cada `t("...")` usado em componentes e, principalmente, em `**/_assets/columnDefs.tsx`, confirme que a chave existe **nos dois** arquivos de mensagens (`pt-BR` e `en`).
+   - Verifique paridade entre `pt-BR.json` e `en.json`: toda chave presente em um deve existir no outro. Chaves órfãs em apenas um idioma são falha.
+   - Grep útil para extrair chaves usadas e cruzar com os JSONs; a inspeção final, porém, é **visual no navegador**, alternando o idioma.
+2. **Valores exibidos coerentes com o dado**
+   - Cada coluna/badge/campo mostra o valor esperado para o dado real da API? (ex.: um usuário inativo deve mostrar "Não"/badge de inativo; um verificado deve mostrar "Verificado".)
+   - Booleanos, enums e status renderizam o rótulo humano correto — nunca `true`/`false`, `null`, `undefined`, `[object Object]`, `NaN` ou o valor bruto do enum.
+   - Datas usam os formatters de `@/utils/formatters` (nunca ISO cru ou `Invalid Date`).
+   - Valores monetários/numéricos respeitam o tipo e a formatação esperados (ex.: centavos convertidos, sem casas quebradas).
+   - Estados vazios exibem a mensagem de "nenhum registro" correta, não uma tabela quebrada.
+3. **Fallbacks e dados ausentes**
+   - Campos opcionais (`whenLoaded()`, nullable) têm fallback visual adequado quando ausentes — não quebram a linha nem mostram `undefined`.
+4. **Consistência entre idiomas**
+   - Ao alternar `pt-BR` ↔ `en`, todos os textos mudam de idioma; nenhum texto fica "preso" hardcoded ou exibindo a chave.
+
+Para cada divergência encontrada, registre a tela, a coluna/campo, o valor exibido vs. o valor esperado, e a correção (normalmente adicionar a chave ausente aos dois arquivos de mensagens ou corrigir o mapeamento de valor→rótulo).
 
 ---
 
@@ -217,6 +286,11 @@ Atribua uma pontuação de **0 a 100** para cada seção e uma **pontuação ger
 
 ### Cálculo
 
+> ⚡ **REGRAS IMPORTANTES:**
+>
+> - **São EXATAMENTE 7 seções, com os pesos fixos abaixo.** Não crie seções adicionais (ex.: i18n separada). Falhas de i18n contam na seção **Qualidade de código** (conforme Fase 9).
+> - **Validação de integridade obrigatória**: ao final do cálculo, verifique se a nota de cada seção corresponde às deduções listadas nas falhas daquela seção (`100 − Σ deduções`). Se houver divergência, corrija o relatório antes de prosseguir.
+
 1. Cada seção começa com **100 pontos**.
 2. Subtraia as deduções de cada falha da seção.
 3. A **pontuação geral** é a média ponderada das seções:
@@ -231,8 +305,15 @@ Atribua uma pontuação de **0 a 100** para cada seção e uma **pontuação ger
    `geral = (segurança×3 + api×2 + lgpd×2 + qualidade×2 + perf×1 + ferram×1 + docs×1) / 12`
 
 4. Arredonde para inteiro mais próximo.
+5. **Verificação final**: confira seção por seção:
+   - Some todas as deduções da seção
+   - Confirme que `100 − soma_das_deduções = nota_da_seção`
+   - Calcule a média ponderada manualmente e confirme que o resultado confere
+   - Se houver discrepância, corrija as notas ou as deduções — nunca deixe inconsistência aritmética no relatório.
 
 ### Apresentação
+
+> ⚡ **A tabela de pontuação por seção tem EXATAMENTE 7 linhas, conforme abaixo.** Não adicione seções extras (ex.: i18n). Falhas de i18n contam em "Qualidade de código". O divisor é sempre 12.
 
 No resumo do relatório, inclua:
 
