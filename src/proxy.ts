@@ -63,7 +63,10 @@ function buildContentSecurityPolicy(
     "base-uri 'self'",
     "form-action 'self'",
     "object-src 'none'",
-  ].join("; ");
+    isDevelopment ? "" : "upgrade-insecure-requests",
+  ]
+    .filter(Boolean)
+    .join("; ");
 }
 
 function withContentSecurityPolicy(request: NextRequest): NextResponse {

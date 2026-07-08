@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 
+import { REQUEST_ID_HEADER, generateRequestId } from "@/lib/api-client";
 import { getServerEnvironment } from "@/lib/env";
 
 export class ServerApiError extends Error {
@@ -19,11 +20,14 @@ export async function serverApiGet<TResponse>(
     .map((cookie) => `${cookie.name}=${cookie.value}`)
     .join("; ");
 
+  const requestId = generateRequestId();
+
   const response = await fetch(`${apiUrlServer}${path}`, {
     method: "GET",
     headers: {
       Accept: "application/json",
       Cookie: cookieHeader,
+      ...(requestId ? { [REQUEST_ID_HEADER]: requestId } : {}),
     },
     cache: "no-store",
   });

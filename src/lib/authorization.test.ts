@@ -41,10 +41,19 @@ describe("can", () => {
     expect(can(admin, "users.manage")).toBe(false);
   });
 
+  it("grants back-office abilities to staff (admin and master)", () => {
+    expect(can(admin, "atelier.manage")).toBe(true);
+    expect(can(admin, "reports.view")).toBe(true);
+    expect(can(master, "atelier.manage")).toBe(true);
+    expect(can(master, "reports.view")).toBe(true);
+  });
+
   it("denies elevated permissions to regular users", () => {
-    expect(can(regular, "users.view")).toBe(false);
-    expect(can(regular, "users.manage")).toBe(false);
+    expect(can(regular, "atelier.manage")).toBe(false);
     expect(can(regular, "audits.view")).toBe(false);
+    expect(can(regular, "reports.view")).toBe(false);
+    expect(can(regular, "users.manage")).toBe(false);
+    expect(can(regular, "users.view")).toBe(false);
   });
 });
 

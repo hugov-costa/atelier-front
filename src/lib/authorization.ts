@@ -1,6 +1,11 @@
 import { User, UserRole } from "@/interfaces/user";
 
-export type Permission = "users.view" | "users.manage" | "audits.view";
+export type Permission =
+  | "atelier.manage"
+  | "audits.view"
+  | "reports.view"
+  | "users.manage"
+  | "users.view";
 
 function roleOf(user: User | null): UserRole {
   return user?.role ?? "user";
@@ -14,8 +19,10 @@ export function can(user: User | null, permission: Permission): boolean {
   const role = roleOf(user);
 
   switch (permission) {
-    case "users.view":
+    case "atelier.manage":
     case "audits.view":
+    case "reports.view":
+    case "users.view":
       return role === "admin" || role === "master";
     case "users.manage":
       return role === "master";

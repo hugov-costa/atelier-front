@@ -24,10 +24,10 @@ interface ProblemPayload {
 
 const CSRF_COOKIE_NAMES = ["__Host-XSRF-TOKEN", "XSRF-TOKEN"];
 const CSRF_HEADER_NAME = "X-XSRF-TOKEN";
-const REQUEST_ID_HEADER = "X-Request-Id";
+export const REQUEST_ID_HEADER = "X-Request-Id";
 const RETRY_AFTER_HEADER = "Retry-After";
 
-function generateRequestId(): string | null {
+export function generateRequestId(): string | null {
   if (
     typeof crypto !== "undefined" &&
     typeof crypto.randomUUID === "function"

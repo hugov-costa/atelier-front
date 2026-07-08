@@ -85,14 +85,14 @@ describe("apiClient", () => {
     );
 
     await expect(
-      apiClient({ url: "/register", method: HttpMethodType.POST, body: {} }),
+      apiClient({ url: "/users", method: HttpMethodType.POST, body: {} }),
     ).rejects.toMatchObject({
       status: 422,
       fieldErrors: { email: ["Já em uso."] },
     });
 
     const error = await apiClient({
-      url: "/register",
+      url: "/users",
       method: HttpMethodType.POST,
       body: {},
     }).catch((caught) => caught);
