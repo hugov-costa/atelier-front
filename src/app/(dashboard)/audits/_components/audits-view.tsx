@@ -94,7 +94,6 @@ export function AuditsView() {
           meta={auditsQuery.data?.meta}
           page={page}
           isFetching={auditsQuery.isFetching}
-          itemLabel={t("itemLabel")}
           onPageChange={setPage}
         />
       </div>

@@ -14,7 +14,6 @@ const AUDITS_PER_PAGE = 10;
 
 export function UserAuditsSection({ userId }: { userId: string }) {
   const t = useTranslations("users");
-  const auditsT = useTranslations("audits");
   const columns = useAuditColumns();
   const [page, setPage] = useState(1);
   const auditsQuery = useUserAudits(userId, { page, perPage: AUDITS_PER_PAGE });
@@ -41,7 +40,6 @@ export function UserAuditsSection({ userId }: { userId: string }) {
         meta={auditsQuery.data?.meta}
         page={page}
         isFetching={auditsQuery.isFetching}
-        itemLabel={auditsT("itemLabel")}
         onPageChange={setPage}
       />
     </section>

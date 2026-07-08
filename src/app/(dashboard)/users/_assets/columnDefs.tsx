@@ -49,6 +49,19 @@ export function useUserColumns(): DataTableColumn<User>[] {
         },
       },
       {
+        id: "active",
+        header: t("columnActive"),
+        cell: (user) => {
+          const isActive = user.is_active ?? true;
+
+          return (
+            <Badge variant={isActive ? "default" : "outline"}>
+              {isActive ? t("activeYes") : t("activeNo")}
+            </Badge>
+          );
+        },
+      },
+      {
         id: "status",
         header: t("columnStatus"),
         cell: (user) => {

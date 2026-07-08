@@ -1,19 +1,11 @@
+import { z } from "zod";
+
 import { PaginatedResponse } from "@/interfaces/paginatedResponse";
+import { auditResponseSchema } from "@/lib/responseSchemas";
 
-export type AuditEvent = "created" | "updated" | "deleted" | "restored";
+export type AuditEvent = z.infer<typeof auditResponseSchema>["event"];
 
-export interface Audit {
-  id: number;
-  event: AuditEvent;
-  auditable_type: string;
-  auditable_id: string;
-  user_id: string | null;
-  old_values: Record<string, unknown>;
-  new_values: Record<string, unknown>;
-  ip_address: string | null;
-  url: string | null;
-  created_at: string;
-}
+export type Audit = z.infer<typeof auditResponseSchema>;
 
 export type ListAuditsResponse = PaginatedResponse<Audit>;
 

@@ -1,4 +1,5 @@
 import {
+  CreateUserPayload,
   GetUserResponse,
   ListUsersParams,
   ListUsersResponse,
@@ -53,6 +54,19 @@ export async function listUsers(
   });
 
   return parseApiResponse(paginatedSchema(userResponseSchema), response);
+}
+
+export async function createUser(
+  payload: CreateUserPayload,
+): Promise<GetUserResponse> {
+  const response = await apiClient<GetUserResponse>({
+    url: "/users",
+    method: HttpMethodType.POST,
+    body: payload,
+    errorMessage: "Erro ao criar usuário.",
+  });
+
+  return parseApiResponse(resourceSchema(userResponseSchema), response);
 }
 
 export async function getUser(userId: string): Promise<GetUserResponse> {

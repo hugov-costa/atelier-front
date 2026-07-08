@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
+import { StudentStatementSection } from "@/app/(dashboard)/users/_components/student-statement-section";
 import { UserAuditsSection } from "@/app/(dashboard)/users/_components/user-audits-section";
 import { UserEditForm } from "@/app/(dashboard)/users/_components/user-edit-form";
 import { useGetUser } from "@/app/(dashboard)/users/_hooks/useGetUser";
@@ -44,6 +45,10 @@ export function EditUserView({ userId }: { userId: string }) {
       {userQuery.data ? <UserEditForm user={userQuery.data.data} /> : null}
 
       {userId.length > 0 ? <UserAuditsSection userId={userId} /> : null}
+
+      {userQuery.data?.data.role === "user" ? (
+        <StudentStatementSection userId={userId} />
+      ) : null}
     </div>
   );
 }

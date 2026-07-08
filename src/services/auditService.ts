@@ -48,9 +48,7 @@ export async function listAudits(
     errorMessage: "Erro ao carregar a auditoria.",
   });
 
-  parseApiResponse(paginatedSchema(auditResponseSchema), response);
-
-  return response;
+  return parseApiResponse(paginatedSchema(auditResponseSchema), response);
 }
 
 export async function listUserAudits(
@@ -63,7 +61,5 @@ export async function listUserAudits(
     errorMessage: "Erro ao carregar a auditoria do usuário.",
   });
 
-  parseApiResponse(paginatedSchema(auditResponseSchema), response);
-
-  return response;
+  return parseApiResponse(paginatedSchema(auditResponseSchema), response);
 }

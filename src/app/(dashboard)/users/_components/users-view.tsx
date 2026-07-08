@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { useUserColumns } from "@/app/(dashboard)/users/_assets/columnDefs";
+import { UserCreateDialog } from "@/app/(dashboard)/users/_components/user-create-dialog";
 import { useUsers } from "@/app/(dashboard)/users/_hooks/useUsers";
 import { RequirePermission } from "@/components/authorization/require-permission";
 import { DataTable } from "@/components/data-table/data-table";
@@ -55,7 +56,11 @@ export function UsersView() {
   return (
     <RequirePermission permission="users.view" title={t("title")}>
       <div className="space-y-6">
-        <PageTitle title={t("title")} description={t("description")} />
+        <PageTitle
+          title={t("title")}
+          description={t("description")}
+          action={<UserCreateDialog />}
+        />
 
         <Input
           type="search"
@@ -79,7 +84,6 @@ export function UsersView() {
           meta={usersQuery.data?.meta}
           page={page}
           isFetching={usersQuery.isFetching}
-          itemLabel={t("itemLabel")}
           onPageChange={setPage}
         />
       </div>
