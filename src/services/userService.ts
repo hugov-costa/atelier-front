@@ -6,7 +6,6 @@ import {
   UpdateUserPayload,
   UpdateUserResponse,
 } from "@/interfaces/userResponse";
-import { MessageResponse } from "@/interfaces/authResponse";
 import { apiClient } from "@/lib/api-client";
 import {
   paginatedSchema,
@@ -93,16 +92,16 @@ export async function updateUser(
   return parseApiResponse(resourceSchema(userResponseSchema), response);
 }
 
-export async function deleteUser(userId: string): Promise<MessageResponse> {
-  return apiClient<MessageResponse>({
+export async function deleteUser(userId: string): Promise<void> {
+  await apiClient<void>({
     url: `/users/${userId}`,
     method: HttpMethodType.DELETE,
     errorMessage: "Erro ao excluir usuário.",
   });
 }
 
-export async function eraseUser(userId: string): Promise<MessageResponse> {
-  return apiClient<MessageResponse>({
+export async function eraseUser(userId: string): Promise<void> {
+  await apiClient<void>({
     url: `/users/${userId}/erase`,
     method: HttpMethodType.POST,
     errorMessage: "Erro ao eliminar os dados do usuário.",

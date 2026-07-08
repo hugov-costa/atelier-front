@@ -1,24 +1,28 @@
-import { User } from "@/interfaces/user";
+import { z } from "zod";
+
 import { apiClient } from "@/lib/api-client";
+import {
+  impersonationResponseSchema,
+  parseApiResponse,
+} from "@/lib/responseSchemas";
 import { HttpMethodType } from "@/types/httpMethod";
 
-export interface StartImpersonationResponse {
-  data: {
-    user: User;
-    expires_at: string;
-  };
-}
+export type StartImpersonationResponse = z.infer<
+  typeof impersonationResponseSchema
+>;
 
 export async function startImpersonation(
   userId: string,
   reason: string,
 ): Promise<StartImpersonationResponse> {
-  return apiClient<StartImpersonationResponse>({
+  const response = await apiClient<StartImpersonationResponse>({
     url: `/users/${userId}/impersonate`,
     method: HttpMethodType.POST,
     body: { reason },
     errorMessage: "Erro ao iniciar a personificação.",
   });
+
+  return parseApiResponse(impersonationResponseSchema, response);
 }
 
 export async function stopImpersonation(): Promise<void> {

@@ -63,6 +63,14 @@ export const loginResponseSchema = z.object({
   message: z.string().nullish(),
 });
 
+export const impersonationResponseSchema = z.object({
+  data: z.object({
+    expires_at: z.string(),
+    user: userResponseSchema,
+  }),
+  message: z.string().nullish(),
+});
+
 export const auditResponseSchema = z.object({
   id: z.number(),
   event: z.enum(["created", "updated", "deleted", "restored"]),
