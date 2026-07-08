@@ -46,3 +46,6 @@ next-env.d.ts
 
 # local agent tooling config
 /.claude/
+
+# generated audit report (not versioned)
+/docs/audit-report.md
