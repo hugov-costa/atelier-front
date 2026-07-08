@@ -74,20 +74,12 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? t("submitting") : t("submit")}
             </Button>
-            <div className="flex w-full flex-col items-center gap-1 text-sm">
-              <Link
-                href="/forgot-password"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                {t("forgotPassword")}
-              </Link>
-              <p className="text-muted-foreground">
-                {t("noAccount")}{" "}
-                <Link href="/register" className="text-foreground underline">
-                  {t("register")}
-                </Link>
-              </p>
-            </div>
+            <Link
+              href="/forgot-password"
+              className="text-muted-foreground hover:text-foreground text-sm"
+            >
+              {t("forgotPassword")}
+            </Link>
           </CardFooter>
         </Form>
       </Card>
