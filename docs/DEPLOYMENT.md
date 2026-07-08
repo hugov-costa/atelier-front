@@ -1,12 +1,21 @@
 # Guia de produção (front + API)
 
-Instruções para colocar a plataforma em produção: a **API** (`atelie`, Laravel/Octane)
+Instruções para colocar a plataforma em produção: a **API** (`atelier`, Laravel/Octane)
 e o **front** (`serv_front`, Next.js), além de como configurá-los **em conjunto** (cookies,
 CORS, CSRF). Ao final há um **checklist** consolidado.
 
 > Os valores de exemplo estão em [`.env.production.example`](../.env.production.example)
 > (front) e em `.env.production.example` no repositório da API. Substitua todos os
 > `<placeholder>`/domínios.
+>
+> Para um **passo a passo** de publicação do front (Render) com a topologia de origem
+> única já resolvida, veja [`DEPLOY-RENDER.md`](DEPLOY-RENDER.md).
+
+> ⚠️ **Origem única obrigatória**: este front lê o cookie CSRF (`__Host-XSRF-TOKEN`)
+> no navegador (double-submit) **e** o `access_token` no SSR. Como o prefixo `__Host-`
+> proíbe `Domain` (cookie host-only), front e API precisam ser servidos pela **mesma
+> origem** em produção — subdomínios distintos e cross-site **não** funcionam sem
+> alterar a API. Detalhes e como configurar em [`DEPLOY-RENDER.md`](DEPLOY-RENDER.md) §0.
 
 ---
 
@@ -19,15 +28,22 @@ Navegador ──HTTPS──> Front (Next.js, :3000)  ──(SSR/proxy)──┐
                                                              └─> Object storage (S3/MinIO)
 ```
 
-- **Mesmo site** (front e API em subdomínios do mesmo domínio registrável, ex.:
-  `app.exemplo.com` + `api.exemplo.com`): cookies `SameSite=lax` funcionam.
-- **Cross-site** (domínios registráveis diferentes): exige `SameSite=none; Secure` e
-  HTTPS nos dois — veja a matriz na seção 4.
-- **TLS**: termine HTTPS em um proxy/ingress na frente de ambos. HTTP só atrás do TLS.
+- **Origem única (obrigatório)**: publique front e API sob a **mesma origem**
+  (ex.: `https://app.exemplo.com`, com `/api/v1/*` e `/sanctum/*` roteados para a API
+  via rewrites do Next ou um roteador na borda). Este front **lê** o cookie CSRF
+  `__Host-XSRF-TOKEN` no navegador; o prefixo `__Host-` é host-only (sem `Domain`),
+  então só é legível na mesma origem. Cookies ficam `SameSite=lax`.
+- **Por que não subdomínios/cross-site**: com `app.` e `api.` separados (ou domínios
+  distintos), o `SameSite` até permite **enviar** o cookie à API, mas o JS do front
+  **não consegue lê-lo** (`__Host-` host-only) → toda mutação falha com `419`. Só
+  funcionaria alterando a API (remover o prefixo `__Host-` + `SESSION_DOMAIN=.pai`).
+- **TLS**: termine HTTPS em um proxy/ingress na frente. HTTP só atrás do TLS.
+
+Passo a passo no Render em [`DEPLOY-RENDER.md`](DEPLOY-RENDER.md).
 
 ---
 
-## 2. API (`atelie`)
+## 2. API (`atelier`)
 
 ### 2.1 Configuração
 
@@ -92,11 +108,14 @@ php artisan migrate --force   # como passo único; ver 2.2
 ### 3.2 Build e execução
 
 ```bash
+# NEXT_PUBLIC_API_URL = origem pública ÚNICA (o navegador chama a API por aqui;
+# o roteador encaminha /api/v1 e /sanctum para a API). Ver seção 1.
 docker build \
-  --build-arg NEXT_PUBLIC_API_URL=https://api.exemplo.com/api/v1 \
+  --build-arg NEXT_PUBLIC_API_URL=https://app.exemplo.com/api/v1 \
   --build-arg NEXT_PUBLIC_STORAGE_URL=https://storage.exemplo.com \
   -t serv-front .
 
+# API_URL_SERVER = URL direta da API (SSR/proxy server-to-server; encaminha cookies).
 docker run -p 3000:3000 \
   -e API_URL_SERVER=https://api.exemplo.com/api/v1 \
   serv-front
@@ -121,14 +140,16 @@ e `NEXT_PUBLIC_STORAGE_URL` — por isso elas precisam ser as **origens reais** 
 
 ## 4. Em conjunto — cookies, CORS, CSRF
 
-| Cenário                         | `AUTH_COOKIE_SAME_SITE` | `AUTH_COOKIE_SECURE` | `CORS_ALLOWED_ORIGINS` | Observação                                                  |
-| ------------------------------- | ----------------------- | -------------------- | ---------------------- | ----------------------------------------------------------- |
-| Mesmo site (subdomínios)        | `lax`                   | `true`               | origem do front        | Mais simples e robusto.                                     |
-| Cross-site (domínios distintos) | `none`                  | `true`               | origem do front        | Exige HTTPS nos dois; sem isso o browser descarta o cookie. |
+| Cenário                        | `AUTH_COOKIE_SAME_SITE` | `AUTH_COOKIE_SECURE` | `CORS_ALLOWED_ORIGINS` | Observação                                                                    |
+| ------------------------------ | ----------------------- | -------------------- | ---------------------- | ----------------------------------------------------------------------------- |
+| **Origem única** (recomendado) | `lax`                   | `true`               | origem do front        | Front e API na mesma origem (rewrites/roteador). O único que funciona as-is.  |
+| Subdomínios / cross-site       | —                       | `true`               | —                      | **Não funciona** com este front (leitura do `__Host-`); exigiria mudar a API. |
 
-- O front chama a API **direto do browser** com `credentials: include`; o `proxy.ts`
-  apenas guarda rotas no servidor.
-- O fluxo CSRF (`GET /sanctum/csrf-cookie` → `X-XSRF-TOKEN`) já está com CORS liberado.
+- O front chama a API **na mesma origem** com `credentials: include`; o `proxy.ts`
+  apenas guarda rotas no servidor (lê o `access_token`).
+- O fluxo CSRF (`GET /sanctum/csrf-cookie` → cookie `__Host-XSRF-TOKEN` →
+  header `X-XSRF-TOKEN`) depende de o front **ler** o cookie no browser — daí a
+  exigência de origem única (seção 1).
 - `X-Request-Id` é exposto pela API e relido pelo front para correlação de logs.
 
 ---
@@ -140,8 +161,10 @@ e `NEXT_PUBLIC_STORAGE_URL` — por isso elas precisam ser as **origens reais** 
 2. **API saudável**: `curl https://api.exemplo.com/api/v1/health` → `200` com
    `status: ok`.
 3. **Front vivo**: `curl https://app.exemplo.com/api/health` → `200`.
-4. **Fluxo real**: registrar → login → acessar a conta → logout no navegador (o cookie
-   deve persistir; sem erro de CORS/CSRF no console).
+4. **Fluxo real**: login → acessar a conta → **fazer uma mutação** (ex.: editar o
+   perfil, para exercer o CSRF) → logout no navegador (o cookie deve persistir; sem
+   erro de CORS/CSRF no console). Não há auto-registro — o 1º master é criado via
+   `POST /api/v1/users/master` e os demais por staff + `/set-password`.
 5. **Sem debug**: confirme que um erro da API retorna Problem JSON **sem stack trace**.
 6. **E-mail**: dispare uma verificação/reset e confirme a entrega.
 
@@ -163,7 +186,7 @@ e `NEXT_PUBLIC_STORAGE_URL` — por isso elas precisam ser as **origens reais** 
 - [ ] Processos `worker` e `scheduler` em execução.
 - [ ] Migrações como passo único de release (se houver múltiplas réplicas).
 - [ ] `config:cache` + `route:cache` + `event:cache` no build.
-- [ ] Primeiro admin criado deliberadamente (seeder/console — registro só cria não-admin).
+- [ ] Primeiro master criado via `POST /api/v1/users/master` (não há auto-registro).
 
 ### Front
 

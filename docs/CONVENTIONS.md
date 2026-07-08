@@ -164,8 +164,29 @@ const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues });
   [`resolveHttpErrorMessage`](../src/utils/resolveHttpErrorMessage.ts) no `onError` das
   mutations — ele trata `429` (com `Retry-After`) e cai na chave de fallback traduzida.
 - **Relato de erros**: [`captureError`](../src/lib/error-reporter.ts) centraliza o envio de
-  erros (boundaries + `onError` global do TanStack Query). O padrão só loga em dev; ligue um
-  serviço real (Sentry/etc.) com `setErrorReporter` num único ponto.
+  erros (boundaries + `onError` global do TanStack Query). O `consoleReporter` padrão **só
+  loga em dev** — em produção os erros são engolidos até você registrar um reporter real.
+  Para ligar um serviço externo (ex.: Sentry), chame `setErrorReporter` **uma vez** no
+  bootstrap do client (ex.: dentro dos `Providers`), guardado por env var:
+
+  ```typescript
+  // Ex.: src/lib/error-reporter-sentry.ts (só ativa se a DSN estiver definida)
+  import * as Sentry from "@sentry/nextjs";
+
+  import { setErrorReporter } from "@/lib/error-reporter";
+
+  export function initErrorReporting(): void {
+    if (!process.env.NEXT_PUBLIC_SENTRY_DSN) {
+      return;
+    }
+
+    Sentry.init({ dsn: process.env.NEXT_PUBLIC_SENTRY_DSN });
+    setErrorReporter({
+      report: (error, context) =>
+        Sentry.captureException(error, { extra: { ...context } }),
+    });
+  }
+  ```
 
 ## Testes
 
@@ -187,29 +208,108 @@ const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues });
 
 A UI deve transmitir a identidade de um **ateliê de cerâmica**:
 
-- **Paleta de cores**: tons terrosos e suaves (terracota, argila, creme, verde sálvia, marrom claro) com um toque minimalista.
-- **Bordas**: predominantemente arredondadas (`rounded-lg`, `rounded-md`), lembrando formas orgânicas.
-- **Tipografia**: limpa, arejada — uso das fontes Geist (sans) e Geist Mono já configuradas.
+- **Paleta de cores**: tons terrosos e suaves — creme, argila, terracota, marrom quente e
+  verde sálvia — definida em variáveis `oklch` no [`globals.css`](../src/app/globals.css)
+  (`:root` para claro, `.dark` para escuro). Use sempre os tokens semânticos do design
+  system (`bg-background`, `text-foreground`, `bg-primary`, `text-muted-foreground`,
+  `border-border`, `bg-accent`…) — **nunca** cores fixas (`text-gray-500`, `#fff`).
+- **Bordas**: predominantemente arredondadas (`--radius: 0.75rem`; `rounded-lg`, `rounded-md`),
+  lembrando formas orgânicas.
+- **Tipografia**: **Fraunces** (serifada, delicada e artesanal) nos títulos — aplicada
+  automaticamente a `h1..h6` e aos slots de título (card/dialog) via `font-heading` no
+  `globals.css`; **Nunito Sans** (humanista, legível e suave) no corpo (`font-sans`);
+  **Geist Mono** para monoespaçado. As fontes são carregadas em [`layout.tsx`](../src/app/layout.tsx)
+  via `next/font` e expostas como `--font-heading` / `--font-sans` / `--font-mono`.
 - **Sensação**: artesanal, delicada, aconchegante — sem excessos visuais.
 - Inputs e cards com sombras suaves e espaçamento generoso.
 
 **Customização**: os componentes shadcn/ui podem ser estilizados via variáveis CSS no `globals.css` e classes Tailwind, respeitando o design system do projeto.
 
-## Campos com texto de ajuda
+## Campos com texto de ajuda (ícone + tooltip)
 
-Para campos ou seções onde a finalidade não é imediatamente óbvia, adicione
-`description` ao componente de formulário:
+Para campos cuja finalidade não é imediatamente óbvia, passe `description` ao componente
+de formulário. Ele **não** é renderizado como texto exposto (evita poluição visual): vira
+um **ícone de informação ao lado do rótulo**, com o texto num **tooltip** (shadcn/Radix)
+no hover/foco.
 
 ```tsx
 <FormInput
-  name="slug"
-  label="Slug"
-  description="Identificador usado na URL. Preenchido automaticamente se deixado em branco."
+  name="price"
+  label="Preço por kg"
+  description="Valor pago por quilograma de argila."
 />
 ```
 
-- Descrições devem ser **concisas** — uma ou duas frases.
-- Não adicionar descrição em campos autoexplicativos (ex.: nome, e-mail).
+- Ajudas devem ser **concisas** — uma ou duas frases.
+- Não adicionar ajuda em campos autoexplicativos (ex.: nome, e-mail).
+- O `<TooltipProvider>` já está no [`providers.tsx`](../src/components/providers.tsx); o
+  ícone+tooltip é implementado uma única vez em [`form-fields.tsx`](../src/components/form/form-fields.tsx).
+
+## Blindagem de entrada (locked tight)
+
+A interface deve ser **à prova de erro do usuário**. Nunca confie apenas na validação
+do formulário — o campo deve **impedir ativamente** que o usuário cometa equívocos.
+
+### Regras
+
+- **Tipo certo, caractere certo**: um campo `number`/`integer` não deve aceitar letras,
+  símbolos ou espaços — use `inputMode="numeric"` e filtre caracteres não numéricos no
+  `onChange` do campo.
+- **Limite físico de caracteres**: `maxLength` deve ser usado em **todo** campo com
+  limite superior (não apenas no schema zod). O usuário não deve conseguir digitar além
+  do máximo.
+- **Mínimo fica no schema, sem travar digitação**: exigências de `minLength`/`min` moram
+  no schema zod e são checadas **no submit** — não bloqueie a digitação nem desabilite o
+  botão de submit por causa disso.
+- **Formatação automática**: campos de telefone, CPF, CNPJ, CEP, data etc. devem
+  **mascarar/formatar** a entrada em tempo real via a prop `sanitize` do `FormInput`
+  (helpers em [`inputSanitizers.ts`](../src/utils/inputSanitizers.ts): `digitsOnly`,
+  `decimalOnly`), não apenas validar no submit. `sanitize` compõe com o `register` do RHF.
+- **Valores monetários**: **todo** campo de dinheiro usa `<FormCurrencyInput>` de
+  [`form-fields.tsx`](../src/components/form/form-fields.tsx) — nunca um `FormInput` com
+  `decimalOnly`. Ele exibe o prefixo **R$** e aplica máscara acumuladora de centavos
+  (vírgula decimal, **sem separador de milhar**, sem zero à esquerda). O valor trafega
+  **sempre em centavos**: converta com `centsFromMaskedInput`/`maskedInputFromCents`
+  ([`formatters.ts`](../src/utils/formatters.ts)) no `toPayload`/`toFormValues`, e valide
+  no schema com `currencyField(t, { required?, max? })`
+  ([`currencyField.ts`](../src/lib/currencyField.ts); `max` em centavos).
+- **Select/combobox em vez de texto livre**: sempre que o valor estiver num conjunto
+  finito e conhecido, use `<Select>`, `<RadioGroup>` ou combobox — nunca input de texto.
+- **Erros de validação apenas no submit**: os erros do zod aparecem **somente ao submeter**
+  — sem validação "ao vivo" (nem antes, nem depois do primeiro submit). Use
+  `useForm({ reValidateMode: "onSubmit" })` (o `mode` padrão já é `onSubmit`) e **não**
+  chame `form.trigger()` ao abrir o formulário.
+- **Botão de submit**: desabilitado **apenas** enquanto a mutação está em andamento
+  (`disabled={isSubmitting}`). Não desabilite com base em `formState.isValid` — isso exigiria
+  validação ao vivo, que é proibida pela regra acima.
+- **Confirmação em ações destrutivas**: toda ação irreversível (excluir, desativar,
+  banir) deve passar por `<ConfirmDialog>` antes de executar.
+- **Toast de erro sempre visível**: erros de mutation devem exibir toast com
+  `resolveHttpErrorMessage` — o usuário nunca deve ficar sem saber o que aconteceu.
+
+```tsx
+// ✅ Certo: numérico que bloqueia caracteres inválidos, sem validação ao vivo
+<FormInput
+  name="phone"
+  label="Telefone"
+  inputMode="numeric"
+  sanitize={digitsOnly}
+  maxLength={11}
+/>
+
+// ❌ Errado: campo texto sem proteção, confiando só no zod
+<FormInput name="age" label="Idade" />
+```
+
+### Exceções
+
+- `Textarea` para observações/descrições longas: não aplicar `maxLength` físico se houver
+  boa razão (ex.: campo de bio sem limite). Nestes casos, ao menos mostre um contador
+  de caracteres e valide no submit.
+- Campos de senha: não use `maxLength` físico (impede gerenciadores de senha), mas
+  valide no schema.
+
+---
 
 ## Tabelas (DataTable)
 

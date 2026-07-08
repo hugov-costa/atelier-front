@@ -34,21 +34,21 @@ Leia `@AGENTS.md` e `docs/LLM-REFERENCE.md` neste diretório antes de escrever c
 
 ## Quick reference
 
-| O que fazer | Import path |
-|-------------|-------------|
-| Cliente HTTP | `@/lib/api-client` |
-| Form kit | `@/components/form/form` + `@/components/form/form-fields` |
-| DataTable | `@/components/data-table/data-table` |
-| Paginação | `@/components/data-table/pagination-controls` |
-| Autorização | `@/hooks/useAuthorization` |
-| Query keys | `@/lib/queryKeys` |
-| Schemas zod | `@/lib/responseSchemas` |
-| Erro HTTP | `@/utils/httpError` |
-| Toast | `sonner` + `@/utils/resolveHttpErrorMessage` |
-| Erro validação form | `@/utils/handleFormValidationError` |
-| Formatação datas | `@/utils/formatters` |
-| Contexto do usuário | `@/contexts/user-context` |
-| Env | `@/lib/env` |
+| O que fazer         | Import path                                                |
+| ------------------- | ---------------------------------------------------------- |
+| Cliente HTTP        | `@/lib/api-client`                                         |
+| Form kit            | `@/components/form/form` + `@/components/form/form-fields` |
+| DataTable           | `@/components/data-table/data-table`                       |
+| Paginação           | `@/components/data-table/pagination-controls`              |
+| Autorização         | `@/hooks/useAuthorization`                                 |
+| Query keys          | `@/lib/queryKeys`                                          |
+| Schemas zod         | `@/lib/responseSchemas`                                    |
+| Erro HTTP           | `@/utils/httpError`                                        |
+| Toast               | `sonner` + `@/utils/resolveHttpErrorMessage`               |
+| Erro validação form | `@/utils/handleFormValidationError`                        |
+| Formatação datas    | `@/utils/formatters`                                       |
+| Contexto do usuário | `@/contexts/user-context`                                  |
+| Env                 | `@/lib/env`                                                |
 
 ## Comportamento
 

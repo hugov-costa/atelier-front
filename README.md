@@ -1,6 +1,6 @@
 # Serv Front
 
-Painel administrativo em Next.js 16 integrado à API [atelie](https://github.com/hugov-costa/boilerplate)
+Painel administrativo em Next.js 16 integrado à API [atelier](https://github.com/hugov-costa/boilerplate)
 (Laravel 13 + Sanctum). A organização de código segue o projeto de referência
 [sl-front](https://github.com/hugov-costa/sl-front), com camadas desacopladas
 (`services`, `interfaces`, `types`, `lib`, `contexts`, `utils`) e hooks, componentes
@@ -23,11 +23,11 @@ e schemas colocados por feature.
 ## Pré-requisitos
 
 - Node.js 20 ou superior
-- A API atelie em execução (veja o repositório do boilerplate). Por padrão ela
+- A API atelier em execução (veja o repositório do boilerplate). Por padrão ela
   responde em `http://localhost:8000` com prefixo `/api/v1` e libera CORS para
   `http://localhost:3000` com suporte a credenciais.
 
-> Para desenvolvimento local, a API foi clonada em `../boilerplate` com um `.env`
+> Para desenvolvimento local, a API está em `../boilerplate-api` com um `.env`
 > ajustado (`AUTH_COOKIE_SECURE=false` para cookies via HTTP, `MAIL_MAILER=log`) e o
 > Postgres/Redis sem portas publicadas no host. Suba apenas o necessário com
 > `docker compose up -d app` (traz `app` + `postgres` + `redis`).
@@ -79,8 +79,9 @@ O guia completo de deploy (front + API + cookies/CORS/CSRF e checklist) está em
 
 ## Funcionalidades
 
-- **Autenticação**: registro, login (com etapa de código quando o 2FA está ativo),
-  logout e proteção de rotas via `proxy.ts`.
+- **Autenticação**: login (com etapa de código quando o 2FA está ativo),
+  logout e proteção de rotas via `proxy.ts`. Não há auto-registro público — contas
+  são criadas por staff (`/users`) e o titular define a senha via `/set-password`.
 - **Recuperação de senha**: solicitação (`/forgot-password`) e redefinição via token
   do e-mail (`/reset-password`).
 - **Verificação de e-mail**: página `/verify-email` que consome o link assinado,
@@ -109,7 +110,6 @@ src/
     config/routes.ts      # Rotas públicas, de autenticação e protegidas
     layout.tsx            # Layout raiz + Providers globais
     login/                # Login (com etapa de código 2FA)
-    register/             # Registro
     forgot-password/      # Solicitação de redefinição de senha
     reset-password/       # Redefinição via token do e-mail
     verify-email/         # Confirmação do e-mail (link assinado)
@@ -155,7 +155,7 @@ src/
 A API autentica clientes de navegador via cookie httpOnly `access_token`
 (Sanctum) e protege requisições mutantes com CSRF de duplo envio:
 
-- O login e o registro chamam `requestCsrfCookie()` antes de enviar dados, obtendo o
+- O login chama `requestCsrfCookie()` antes de enviar dados, obtendo o
   cookie `XSRF-TOKEN`.
 - Em requisições `POST`, `PUT`, `PATCH` e `DELETE`, o cliente HTTP lê o cookie CSRF e o
   reenvia no cabeçalho `X-XSRF-TOKEN`. Em produção a API emite o cookie com o prefixo
@@ -171,7 +171,7 @@ A API autentica clientes de navegador via cookie httpOnly `access_token`
 
 Todos sob o prefixo `/api/v1`:
 
-- Autenticação: `POST /register`, `POST /login`, `POST /logout`, `GET /user`
+- Autenticação: `POST /login`, `POST /logout`, `GET /user`
 - Senha: `PUT /user/password`, `POST /forgot-password`, `POST /reset-password`
 - Verificação de e-mail: `GET /email/verify/{id}/{hash}` (link assinado),
   `POST /email/verification-notification`
@@ -185,11 +185,13 @@ Todos sob o prefixo `/api/v1`:
 ### Contrato da API (validado contra a API real)
 
 - Todas as respostas são envelopadas em `{ data, message }`.
-- `POST /login` e `POST /register` retornam o usuário em **`data.user`** (junto de
+- `POST /login` retorna o usuário em **`data.user`** (junto de
   `token` e `token_type`); `GET /user`, `GET /users/{id}` e `PATCH /users/{id}`
   retornam o usuário diretamente em **`data`**.
 - O **`id` do usuário é uma string ULID** (não numérico). Campos do usuário:
-  `id`, `name`, `email`, `admin`, `avatar_url`, `email_verified_at`,
+  `id`, `name`, `email`, `role` (`master`/`admin`/`user`), `is_active`,
+  `admission_date`, `birthday`, `phone`, `avatar_url`, `has_password`,
+  `two_factor_enabled`, `impersonated_by`, `email_verified_at`,
   `created_at`, `updated_at`.
 - `GET /users` (listagem paginada com `data`/`meta`/`links`) é **restrito a
   administradores** — usuários comuns recebem `403`, tratado na tela de usuários.
@@ -313,7 +315,7 @@ alterações relevantes neste README.
   (lista vs. detalhe), `optimizePackageImports`, `target` ES2022 e remoção de strings
   fixas em PT na tabela/paginação.
 
-### Integração inicial com a API atelie
+### Integração inicial com a API atelier
 
 - Adicionada a stack de integração: TanStack Query, react-hook-form, zod,
   shadcn/ui, sonner e next-themes.

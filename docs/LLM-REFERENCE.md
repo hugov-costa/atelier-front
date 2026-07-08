@@ -7,20 +7,20 @@ Mantenha este arquivo atualizado conforme o projeto evolui.
 
 ## 1. Stack
 
-| Camada          | Tecnologia                        |
-| --------------- | --------------------------------- |
-| Framework       | Next.js 16 (App Router, Turbopack)|
-| React           | 19                                |
-| CSS             | Tailwind CSS v4                   |
-| UI Kit          | shadcn/ui (Radix)                 |
-| Server state    | @tanstack/react-query v5          |
-| Forms           | react-hook-form + zod v4          |
-| i18n            | next-intl                         |
-| Theme           | next-themes                       |
-| Notifications   | sonner                            |
-| Test unitário   | Vitest + Testing Library          |
-| Test e2e        | Playwright                        |
-| Lint/Format     | ESLint + Prettier                 |
+| Camada        | Tecnologia                         |
+| ------------- | ---------------------------------- |
+| Framework     | Next.js 16 (App Router, Turbopack) |
+| React         | 19                                 |
+| CSS           | Tailwind CSS v4                    |
+| UI Kit        | shadcn/ui (Radix)                  |
+| Server state  | @tanstack/react-query v5           |
+| Forms         | react-hook-form + zod v4           |
+| i18n          | next-intl                          |
+| Theme         | next-themes                        |
+| Notifications | sonner                             |
+| Test unitário | Vitest + Testing Library           |
+| Test e2e      | Playwright                         |
+| Lint/Format   | ESLint + Prettier                  |
 
 ---
 
@@ -66,7 +66,12 @@ src/
 import { apiClient } from "@/lib/api-client";
 import { clientEnvironment } from "@/lib/env";
 import { queryKeys } from "@/lib/queryKeys";
-import { parseApiResponse, userResponseSchema, paginatedSchema, resourceSchema } from "@/lib/responseSchemas";
+import {
+  parseApiResponse,
+  userResponseSchema,
+  paginatedSchema,
+  resourceSchema,
+} from "@/lib/responseSchemas";
 import { HttpMethodType } from "@/types/httpMethod";
 import { HttpStatusType } from "@/types/httpStatus";
 import { HttpError } from "@/utils/httpError";
@@ -80,16 +85,31 @@ import { useListController } from "@/hooks/useListController";
 import { useLogout } from "@/hooks/useLogout";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Form } from "@/components/form/form";
-import { FormInput, FormTextarea, FormSelect, FormCheckbox, FormSwitch } from "@/components/form/form-fields";
+import {
+  FormInput,
+  FormTextarea,
+  FormSelect,
+  FormCheckbox,
+  FormSwitch,
+} from "@/components/form/form-fields";
 import { FieldGroup } from "@/components/ui/field";
-import { DataTable, DataTableColumn, DataTableSort } from "@/components/data-table/data-table";
+import {
+  DataTable,
+  DataTableColumn,
+  DataTableSort,
+} from "@/components/data-table/data-table";
 import { PaginationControls } from "@/components/data-table/pagination-controls";
 import { Can } from "@/components/authorization/can";
 import { RequirePermission } from "@/components/authorization/require-permission";
 import { PageTitle } from "@/components/page-title";
 import { loginRoute } from "@/app/config/routes";
 import { useTranslations } from "next-intl";
-import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -101,6 +121,10 @@ import { toast } from "sonner";
 ## 4. Padrão de Service
 
 Cada service exporta funções `async` tipadas que delegam ao `apiClient`.
+
+> `product`/`products` abaixo é um **placeholder didático** — não existe esse recurso no
+> projeto. Troque pelo recurso real (ex.: `customer`, `piece`, `bill`). Para a lista de
+> services reais, veja `src/services/`.
 
 ```typescript
 // src/services/productService.ts (exemplo genérico)
@@ -128,15 +152,15 @@ export async function getProduct(id: string): Promise<GetProductResponse> {
 }
 
 export async function createProduct(payload: CreateProductPayload): Promise<GetProductResponse> {
-  await requestCsrfCookie(); // só em mutações que precisam de CSRF novo
   return apiClient({ url: "/products", method: HttpMethodType.POST, body: payload, ... });
 }
 ```
 
 Regras:
+
 - `errorMessage` **sempre** em português (fallback)
 - Valide resposta com `parseApiResponse(schema, response)`
-- Mutações (POST/PUT/PATCH/DELETE) chamam `requestCsrfCookie()` **antes** se o CSRF pode expirar
+- **NÃO** chame `requestCsrfCookie()` nos services de CRUD. A proteção CSRF é _double-submit_ stateless: o `apiClient` já lê o cookie `XSRF-TOKEN` e o reenvia no header `X-XSRF-TOKEN` em toda mutação. O cookie CSRF é emitido no login junto do cookie de autenticação, ambos com a mesma validade (`AUTH_COOKIE_LIFETIME`, 14 dias), então nunca expira antes da sessão. `requestCsrfCookie()` é só para fluxos **pré-autenticação** (login, forgot/reset/set-password) — por isso vive apenas no `authService`.
 - Use `HttpMethodType.GET | POST | PUT | PATCH | DELETE`
 
 ---
@@ -146,7 +170,12 @@ Regras:
 ```typescript
 "use client";
 
-import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -157,7 +186,10 @@ import { resolveHttpErrorMessage } from "@/utils/resolveHttpErrorMessage";
 import { handleFormValidationError } from "@/utils/handleFormValidationError";
 
 // === Query (leitura) ===
-export function useProducts(params: ListProductsParams, options?: { enabled?: boolean }) {
+export function useProducts(
+  params: ListProductsParams,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: queryKeys.productsList(params),
     queryFn: () => listProducts(params),
@@ -185,6 +217,7 @@ export function useCreateProduct() {
 ```
 
 Regras:
+
 - Leitura: `keepPreviousData`, `enabled` opcional (para gate de permissão)
 - Escrita: `invalidateQueries` no `onSuccess`, toast no `onSuccess`/`onError`
 - Erro de validação do servidor: use `handleFormValidationError(error, setError, fieldNameMap)`
@@ -272,13 +305,13 @@ export function ProductForm() {
 ```
 
 Componentes de campo disponíveis:
-| Componente      | Props adicionais                          |
+| Componente | Props adicionais |
 | --------------- | ----------------------------------------- |
-| `FormInput`     | `type`, `autoComplete`, `placeholder`     |
-| `FormTextarea`  | `rows`                                    |
-| `FormSelect`    | `options: { label: string, value: string }[]` |
-| `FormCheckbox`  | (nenhuma especial)                        |
-| `FormSwitch`    | (nenhuma especial)                        |
+| `FormInput` | `type`, `autoComplete`, `placeholder` |
+| `FormTextarea` | `rows` |
+| `FormSelect` | `options: { label: string, value: string }[]` |
+| `FormCheckbox` | (nenhuma especial) |
+| `FormSwitch` | (nenhuma especial) |
 
 ---
 
@@ -317,6 +350,7 @@ export function useProductColumns(): DataTableColumn<Product>[] {
 ```
 
 Uso na view:
+
 ```typescript
 const { page, perPage, setPage, search, debouncedSearch, onSearchChange, sort, onSortChange } =
   useListController({ perPage: 10, initialSort: { key: "created_at", direction: "desc" } });
@@ -356,10 +390,10 @@ can("users.manage");       // boolean (só master)
 useUsers(params, { enabled: can("users.view") });
 ```
 
-| Papel    | Permissões                              |
-| -------- | --------------------------------------- |
-| `user`   | Nenhuma (só própria conta)              |
-| `admin`  | `users.view`, `audits.view`             |
+| Papel    | Permissões                                  |
+| -------- | ------------------------------------------- |
+| `user`   | Nenhuma (só própria conta)                  |
+| `admin`  | `users.view`, `audits.view`                 |
 | `master` | `users.view`, `users.manage`, `audits.view` |
 
 ---
@@ -390,6 +424,7 @@ toast.error(resolveHttpErrorMessage(error, t, "fallbackKey"));
 ## 11. Query Keys
 
 Sempre registre em `src/lib/queryKeys.ts`:
+
 ```typescript
 export const queryKeys = {
   // lists: ["prefix", "list"] as const,
@@ -399,6 +434,7 @@ export const queryKeys = {
 ```
 
 Padrão:
+
 - `queryKeys.resourceLists` — prefixo para invalidate de todas as listas
 - `queryKeys.resourceList(params)` — lista específica (para cache)
 - `queryKeys.resource(id)` — detalhe
@@ -408,24 +444,39 @@ Padrão:
 ## 12. Response Schemas (zod)
 
 Sempre em `src/lib/responseSchemas.ts`:
+
 ```typescript
-export const myResponseSchema = z.object({ id: z.string(), name: z.string(), /* ... */ });
+export const myResponseSchema = z.object({
+  id: z.string(),
+  name: z.string() /* ... */,
+});
 
 // Uso no service:
 return parseApiResponse(paginatedSchema(myResponseSchema), response);
 return parseApiResponse(resourceSchema(myResponseSchema), response);
 ```
 
-Schemas disponíveis:
+Wrappers e helpers:
+
 - `resourceSchema(item)` — `{ data: T, message?: string }`
 - `paginatedSchema(item)` — `{ data: T[], links, meta }`
-- `userResponseSchema`, `auditResponseSchema`, `loginResponseSchema`
+- `parseApiResponse(schema, response)` — valida e **retorna** o dado (nunca descarte o retorno)
+
+Schemas de item disponíveis (todos em `src/lib/responseSchemas.ts`):
+
+- **Auth/Usuários**: `userResponseSchema`, `loginResponseSchema`, `auditResponseSchema`, `studentStatementResponseSchema`
+- **Catálogo**: `claySupplierResponseSchema`, `clayResponseSchema`, `glazeSupplierResponseSchema`, `glazeResponseSchema`, `pieceCategoryResponseSchema`, `firingCycleResponseSchema`, `materialPurchaseResponseSchema`
+- **Produção & Vendas**: `pieceResponseSchema`, `commissionOrderResponseSchema`, `pieceChargeResponseSchema`, `customerResponseSchema`
+- **Aulas**: `singleClassResponseSchema`, `recurrentClassResponseSchema`, `enrollmentResponseSchema`
+- **Financeiro**: `billResponseSchema`, `tuitionFeeResponseSchema`, `monthlyReportResponseSchema`
+- **Config**: `settingResponseSchema`, `notificationResponseSchema`
 
 ---
 
 ## 13. Interfaces
 
 Arquivos em `src/interfaces/` com tipos que NÃO são inferidos de zod:
+
 ```typescript
 export interface ListProductsParams {
   page?: number;
@@ -437,6 +488,7 @@ export interface ListProductsParams {
 ```
 
 Tipos inferidos de zod (definidos junto com o schema da entidade ou reexportados):
+
 ```typescript
 // src/interfaces/product.ts
 import { z } from "zod";
@@ -449,9 +501,12 @@ export type Product = z.infer<typeof productResponseSchema>;
 ## 14. Server-side Prefetch
 
 Para páginas que precisam de SSR, crie funções em `src/lib/server-prefetch.ts`:
+
 ```typescript
 export async function fetchProductsOnServer(params: ListProductsParams) {
-  const response = await serverApiGet<unknown>(`/products${buildListQuery(params)}`);
+  const response = await serverApiGet<unknown>(
+    `/products${buildListQuery(params)}`,
+  );
   return parseApiResponse(paginatedSchema(productResponseSchema), response);
 }
 ```
