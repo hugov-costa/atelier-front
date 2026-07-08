@@ -1,5 +1,9 @@
 # Orquestra a stack completa (API + front) sob um único projeto e rede (atelier_default).
 # `include` puxa o compose da API sem alterá-lo; o front sobe só depois da API saudável.
+#
+# O front tem DOIS perfis, escolhidos pela variável COMPOSE_PROFILES no .env:
+#   COMPOSE_PROFILES=dev   -> sobe `web-dev`: `next dev` com bind-mount do código (HMR, sem rebuild).
+#   COMPOSE_PROFILES=prod  -> sobe `web`: imagem standalone de produção (`next build` -> node server.js).
 # Suba tudo a partir daqui: `docker compose up -d` (API primeiro, front depois).
 name: atelier
 
@@ -8,6 +12,8 @@ include:
 
 services:
   web:
+    profiles:
+      - prod
     build:
       context: .
       args:
@@ -16,7 +22,34 @@ services:
     ports:
       - "3000:3000"
     environment:
+      - NODE_ENV=production
+      # Dentro da rede compartilhada o front alcança a API pelo nome do serviço.
+      - API_URL_SERVER=${API_URL_SERVER:-http://app:8000/api/v1}
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web-dev:
+    profiles:
+      - dev
+    build:
+      context: .
+      # Estágio `deps` traz só node_modules; o código vem do bind-mount, sem `next build`.
+      target: deps
+    command: npm run dev
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      # Código do host montado para HMR; node_modules e .next preservados da imagem/container.
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
       - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+      - NEXT_PUBLIC_STORAGE_URL=${NEXT_PUBLIC_STORAGE_URL:-http://localhost:9000}
       # Dentro da rede compartilhada o front alcança a API pelo nome do serviço.
       - API_URL_SERVER=${API_URL_SERVER:-http://app:8000/api/v1}
     depends_on:
